@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng A* - Trường hợp CHỌN SAI (Inadmissible)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fff0f0; color: #333; text-align: center; padding: 20px; }
+        h2 { color: #c0392b; }
+        .container { position: relative; width: 700px; height: 500px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #ddd; overflow: hidden; }
+        
+        .node { position: absolute; width: 70px; height: 70px; background: #ecf0f1; border: 3px solid #bdc3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; z-index: 2; transition: all 0.5s ease; opacity: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .node.active { opacity: 1; transform: scale(1); }
+        .node.highlight { border-color: #f39c12; box-shadow: 0 0 15px #f1c40f; transform: scale(1.1); }
+        .node.chosen-wrong { border-color: #e74c3c; background: #fadbd8; } /* Màu đỏ báo lỗi */
+        .node.ignored { opacity: 0.4; filter: grayscale(100%); }
+        
+        #node-s { top: 40px; left: 315px; background: #dcdde1; opacity: 1; }
+        #node-n { top: 200px; left: 150px; }
+        #node-g2 { top: 200px; left: 480px; }
+        #node-g { top: 380px; left: 150px; }
+
+        .info { position: absolute; font-size: 14px; background: rgba(255,255,255,0.9); padding: 5px 10px; border-radius: 5px; border: 1px solid #ccc; opacity: 0; transition: opacity 0.5s; z-index: 3; text-align: left; }
+        #info-s { top: 40px; left: 400px; opacity: 1; }
+        #info-n { top: 150px; left: 15px; border-color: #e74c3c; }
+        #info-g2 { top: 150px; left: 570px; }
+        #info-g { top: 380px; left: 240px; } /* Sẽ không bao giờ hiện ra */
+
+        svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        line { stroke: #95a5a6; stroke-width: 3; stroke-dasharray: 5; opacity: 0; transition: opacity 0.5s; }
+        line.active { opacity: 1; }
+
+        .controls { margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 16px; font-weight: bold; color: white; background: #e67e22; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #d35400; }
+        .message { margin-top: 15px; font-size: 18px; font-weight: bold; color: #c0392b; height: 30px; }
+    </style>
+</head>
+<body>
+	
+    <h2>Mô phỏng A* - Thất bại do Heuristic Inadmissible</h2>
+    <p>Khi h(n) đánh giá quá cao chi phí thực tế: h(n) > h*(n)</p>
+
+    <div class="container">
+        <svg>
+            <line id="line-sn" x1="350" y1="75" x2="185" y2="235"></line>
+            <line id="line-sg2" x1="350" y1="75" x2="515" y2="235"></line>
+            <line id="line-ng" x1="185" y1="235" x2="185" y2="415"></line> </svg>
+
+        <div id="node-s" class="node">S</div>
+        <div id="info-s" class="info">Xuất phát</div>
+
+        <div id="node-n" class="node">n</div>
+        <div id="info-n" class="info">
+            <b>Đang xét (n)</b><br>
+            g(n) = 3<br>
+            <span style="color:red">h(n) = 8 > 5 (Bi quan)</span><br>
+            <b>f(n) = 11</b>
+        </div>
+
+        <div id="node-g2" class="node">G2</div>
+        <div id="info-g2" class="info">
+            <b>Đích giả (G2)</b><br>
+            g(G2) = 10<br>
+            h(G2) = 0<br>
+            <b>f(G2) = 10</b>
+        </div>
+
+        <div id="node-g" class="node">G</div>
+        <div id="info-g" class="info">Đích tối ưu (G) - C* = 8</div>
+    </div>
+
+    <div class="controls">
+        <button id="nextBtn" onclick="nextStep()">Tiếp tục (Bước 1)</button>
+        <button id="resetBtn" onclick="reset()" style="background:#7f8c8d; display:none;">Làm lại</button>
+    </div>
+    <div class="message" id="messageBox">Bắt đầu thuật toán với Heuristic đánh giá sai lệch.</div>
+
+    <script>
+        let step = 0;
+
+        function nextStep() {
+            step++;
+            const msg = document.getElementById("messageBox");
+            const btn = document.getElementById("nextBtn");
+
+            if (step === 1) {
+                document.getElementById("node-n").classList.add("active");
+                document.getElementById("info-n").style.opacity = "1";
+                document.getElementById("line-sn").classList.add("active");
+
+                document.getElementById("node-g2").classList.add("active");
+                document.getElementById("info-g2").style.opacity = "1";
+                document.getElementById("line-sg2").classList.add("active");
+
+                msg.innerHTML = "Bước 1: A* đưa n và G2 vào tập Biên.";
+                btn.innerText = "Tiếp tục (Bước 2)";
+            } 
+            else if (step === 2) {
+                document.getElementById("node-n").classList.add("highlight");
+                document.getElementById("node-g2").classList.add("highlight");
+                
+                msg.innerHTML = "Bước 2: So sánh. Do hàm h(n) quá bi quan, tính ra f(n) = 11. Trong khi f(G2) chỉ là 10.";
+                btn.innerText = "Tiếp tục (Bước 3)";
+            }
+            else if (step === 3) {
+                document.getElementById("node-n").classList.remove("highlight");
+                document.getElementById("node-g2").classList.remove("highlight");
+                
+                document.getElementById("node-g2").classList.add("chosen-wrong");
+                document.getElementById("node-n").classList.add("ignored");
+                document.getElementById("info-n").style.opacity = "0.4";
+
+                msg.innerHTML = "Bước 3: THẢM HỌA! Vì 10 < 11, thuật toán vội vàng chọn đích giả G2 và dừng lại.";
+                btn.innerText = "Kết luận";
+            }
+            else if (step === 4) {
+                msg.innerHTML = "Thuật toán KẾT THÚC SAI LẦM với chi phí 10, bỏ lỡ đường đi tối ưu chi phí 8 đang ẩn dưới nút n.";
+                btn.style.display = "none";
+                document.getElementById("resetBtn").style.display = "inline-block";
+            }
+        }
+
+        function reset() {
+            step = 0;
+            const elements = ["node-n", "node-g2", "node-g", "line-sn", "line-sg2", "line-ng"];
+            elements.forEach(id => {
+                let el = document.getElementById(id);
+                el.classList.remove("active", "highlight", "chosen-wrong", "ignored");
+            });
+
+            const infos = ["info-n", "info-g2", "info-g"];
+            infos.forEach(id => {
+                let el = document.getElementById(id);
+                el.style.opacity = "0";
+            });
+
+            document.getElementById("messageBox").innerHTML = "Bắt đầu thuật toán với Heuristic đánh giá sai lệch.";
+            document.getElementById("nextBtn").style.display = "inline-block";
+            document.getElementById("nextBtn").innerText = "Tiếp tục (Bước 1)";
+            document.getElementById("resetBtn").style.display = "none";
+        }
+    </script>
+
+</body>
+</html>
